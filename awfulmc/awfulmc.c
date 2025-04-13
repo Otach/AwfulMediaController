@@ -1,5 +1,7 @@
 #include "awfulmc.h"
 
+#define COMMAND_BUF_SIZE 256
+
 GMainLoop *main_loop;
 
 typedef struct {
@@ -405,30 +407,29 @@ gboolean unix_socket_callback(GIOChannel *channel, GIOCondition condition, gpoin
 
     AwfulMCContext *ctx = (AwfulMCContext *)user_data;
 
-    char buffer[256] = {0};
+    char buffer[COMMAND_BUF_SIZE] = {0};
     gsize bytes_read;
-    GIOStatus status = g_io_channel_read_chars(channel, buffer, sizeof(buffer) - 1, &bytes_read, NULL);
+    GIOStatus status = g_io_channel_read_chars(channel, buffer, COMMAND_BUF_SIZE - 1, &bytes_read, NULL);
 
     if (status == G_IO_STATUS_NORMAL && bytes_read > 0) {
         buffer[bytes_read] = '\0';
-        if (strcmp(buffer, "TOGGLE\n") == 0) {
-            g_info("received TOGGLE command");
+        if (strncmp(buffer, "TOGGLE\n", bytes_read) == 0) {
             ctx->media_box_visible = !ctx->media_box_visible;
             handle_media_box(ctx);
-        } else if (strcmp(buffer, "PLAYPAUSE\n") == 0) {
+        } else if (strncmp(buffer, "PLAYPAUSE\n", bytes_read) == 0) {
             if (ctx->media_box_visible && ctx->mbc->shown_player != NULL) {
                 send_play_pause(ctx);
             }
-        } else if (strcmp(buffer, "ROTATE\n") == 0) {
+        } else if (strncmp(buffer, "ROTATE\n", bytes_read) == 0) {
             if (ctx->media_box_visible) {
                 rotate_shown_player_next(ctx);
                 handle_media_box(ctx);
             }
-        } else if (strcmp(buffer, "PREVIOUS\n") == 0) {
+        } else if (strncmp(buffer, "PREVIOUS\n", bytes_read) == 0) {
             if (ctx->media_box_visible && ctx->mbc->shown_player != NULL) {
                 send_prev(ctx);
             }
-        } else if (strcmp(buffer, "NEXT\n") == 0) {
+        } else if (strncmp(buffer, "NEXT\n", bytes_read) == 0) {
             if (ctx->media_box_visible && ctx->mbc->shown_player != NULL) {
                 send_next(ctx);
             }

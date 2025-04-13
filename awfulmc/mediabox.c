@@ -7,18 +7,9 @@
 #include <X11/X.h>
 #include <X11/Xlib.h>
 
-MediaBoxContext *media_box_context_new() {
-    MediaBoxContext *mbc = calloc(1, sizeof(MediaBoxContext));
+#define NO_WINDOW 0
 
-    mbc->display = XOpenDisplay(NULL);
-    if (!mbc->display) {
-        fprintf(stderr, "Failed to open X display\n");
-        fflush(stderr);
-        free(mbc);
-        return NULL;
-    }
-    mbc->screen = DefaultScreen(mbc->display);
-
+void create_window(MediaBoxContext* mbc) {
     int x = (DisplayWidth(mbc->display, mbc->screen) - WIDTH) / 2;
     int y = (DisplayHeight(mbc->display, mbc->screen) - HEIGHT) / 1.2;
 
@@ -54,6 +45,33 @@ MediaBoxContext *media_box_context_new() {
 
     mbc->cairo_surface = cairo_xlib_surface_create(mbc->display, mbc->win, DefaultVisual(mbc->display, mbc->screen), WIDTH, HEIGHT);
     mbc->cairo = cairo_create(mbc->cairo_surface);
+
+    return;
+}
+
+void destroy_window(MediaBoxContext *mbc) {
+    // Remove the window, gc, cairo_surface, cairo
+    cairo_destroy(mbc->cairo);
+    cairo_surface_destroy(mbc->cairo_surface);
+    XDestroyWindow(mbc->display, mbc->win);
+    XFreeGC(mbc->display, mbc->gc);
+    mbc->win = NO_WINDOW;
+
+    return;
+}
+
+MediaBoxContext *media_box_context_new() {
+    MediaBoxContext *mbc = calloc(1, sizeof(MediaBoxContext));
+
+    mbc->display = XOpenDisplay(NULL);
+    if (!mbc->display) {
+        fprintf(stderr, "Failed to open X display\n");
+        fflush(stderr);
+        free(mbc);
+        return NULL;
+    }
+    mbc->screen = DefaultScreen(mbc->display);
+
 
     mbc->font_large = pango_font_description_from_string("Hack 10");
     mbc->font_normal = pango_font_description_from_string("Hack 8");
@@ -103,16 +121,13 @@ MediaBoxContext *media_box_context_new() {
 
 void media_box_context_free(MediaBoxContext *mbc) {
     mbc->shown_player = NULL;
-    cairo_destroy(mbc->cairo);
-    cairo_surface_destroy(mbc->cairo_surface);
+    if (mbc->win != NO_WINDOW) {
+        destroy_window(mbc);
+    }
     pango_font_description_free(mbc->font_large);
     pango_font_description_free(mbc->font_normal);
     pango_font_description_free(mbc->font_small);
-
-    XFreeGC(mbc->display, mbc->gc);
-    XDestroyWindow(mbc->display, mbc->win);
     XCloseDisplay(mbc->display);
-
 
     if (mbc->buttons) {
         for (int i = 0; i < BUTTON_COUNT; i++) {
@@ -177,6 +192,9 @@ void draw_button(MediaBoxContext *mbc, Button *btn) {
 }
 
 void draw_media_box(MediaBoxContext *mbc, GQueue *players) {
+    if (mbc->win == NO_WINDOW) {
+        create_window(mbc);
+    }
     XClearWindow(mbc->display, mbc->win);
     cairo_set_source_rgba(mbc->cairo, 0.23, 0.23, 0.23, 1.0);
     cairo_paint(mbc->cairo);
@@ -230,6 +248,6 @@ void draw_media_box(MediaBoxContext *mbc, GQueue *players) {
 }
 
 void remove_media_box(MediaBoxContext *mbc) {
-    XUnmapWindow(mbc->display, mbc->win);
+    destroy_window(mbc);
     XFlush(mbc->display);
 }

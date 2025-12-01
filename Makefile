@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O2 -Wno-unused-parameter
+CFLAGS = -Wall -Wextra -O2 -Wno-unused-parameter -lm
 PKGCONFIG = pkg-config
 LIBRARIES = gio-2.0 glib-2.0 x11 xinerama pangocairo cairo
 LIB_CFLAGS = $(shell $(PKGCONFIG) --cflags $(LIBRARIES))
@@ -28,6 +28,7 @@ $(BUILDDIR)/%.o: $(SRCDIR)/%.c
 
 clean:
 	rm -rf $(BUILDDIR)
+	rm -f $(BINDIR)/awfulmc
 
 install: $(TARGET)
 	@mkdir -p $(BINDIR)

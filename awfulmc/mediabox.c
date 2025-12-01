@@ -51,6 +51,9 @@ void create_window(MediaBoxContext* mbc) {
 
 void destroy_window(MediaBoxContext *mbc) {
     // Remove the window, gc, cairo_surface, cairo
+    if (mbc->win == NO_WINDOW)
+        return;
+
     cairo_destroy(mbc->cairo);
     cairo_surface_destroy(mbc->cairo_surface);
     XDestroyWindow(mbc->display, mbc->win);

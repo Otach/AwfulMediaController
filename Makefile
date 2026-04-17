@@ -14,6 +14,10 @@ SRC = $(shell find $(SRCDIR)/*.c)
 OBJ = $(patsubst $(SRCDIR)/%.c, $(BUILDDIR)/%.o, $(SRC))
 DEP = $(OBJ:.o=.d)
 
+TESTDIR = tests
+TEST_CFLAGS = -Wall -Wextra -g -I./awfulmc $(shell $(PKGCONFIG) --cflags $(LIBRARIES))
+TEST_LDFLAGS = -lcheck -pthread -lrt -lm $(shell $(PKGCONFIG) --libs $(LIBRARIES))
+
 all: $(TARGET)
 
 $(TARGET): $(OBJ)
@@ -26,9 +30,18 @@ $(BUILDDIR)/%.o: $(SRCDIR)/%.c
 
 -include $(DEP)
 
+test: $(TESTDIR)/bin/test_amcqueue
+	@echo "Running Tests..."
+	@$(TESTDIR)/bin/test_amcqueue
+
+$(TESTDIR)/bin/test_amcqueue: awfulmc/amc_queue.c tests/test_amcqueue.c
+	@mkdir -p $(TESTDIR)/bin
+	$(CC) $(TEST_CFLAGS) -o $@ tests/test_amcqueue.c awfulmc/amc_queue.c $(TEST_LDFLAGS)
+
 clean:
 	rm -rf $(BUILDDIR)
 	rm -f $(BINDIR)/awfulmc
+	rm -rf $(TESTDIR)
 
 install: $(TARGET)
 	@mkdir -p $(BINDIR)

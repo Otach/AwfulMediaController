@@ -1,6 +1,7 @@
 #ifndef __AWFULMC_H__
 #define __AWFULMC_H__
 
+#include "amc_queue.h"
 #include "pango/pango-font.h"
 #include "pango/pango-layout.h"
 #include "player.h"

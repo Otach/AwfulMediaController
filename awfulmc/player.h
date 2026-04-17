@@ -38,8 +38,8 @@ PlayerProperties *properties_new();
 PlayerMetadata *metadata_new();
 void metadata_free(PlayerMetadata *md);
 void properties_free(PlayerProperties *props);
-void player_free(Player *player);
+void player_free(void *player);
 bool update_player_properties(Player *player, GVariant *properties);
 void print_player(Player *player);
-gint player_compare(gconstpointer a, gconstpointer b);
+int player_compare(const void *a, const void *b);
 #endif

@@ -1,4 +1,6 @@
 #include "awfulmc.h"
+#include "amc_queue.h"
+#include "player.h"
 
 #define COMMAND_BUF_SIZE 256
 
@@ -6,8 +8,8 @@ GMainLoop *main_loop;
 
 typedef struct {
     GDBusConnection *con;
-    GQueue *players;
-    GQueue *pending_players;
+    AMCQueue *players;
+    AMCQueue *pending_players;
     Player *pending_active;
     int display_fd;
     bool media_box_visible;
@@ -87,8 +89,8 @@ const gchar *get_player_owner(GDBusConnection *con, const gchar *name) {
     return owner;
 }
 
-GQueue *get_players(AwfulMCContext *ctx, GError **err) {
-    GQueue *players = g_queue_new();
+AMCQueue *get_players(AwfulMCContext *ctx, GError **err) {
+    AMCQueue *players = amcqueue_init();
     GError *tmp_error = NULL;
 
     GDBusProxy *proxy = g_dbus_proxy_new_sync(
@@ -147,10 +149,10 @@ GQueue *get_players(AwfulMCContext *ctx, GError **err) {
                 continue;
             }
 
-            g_queue_push_head(players, player);
+            amc_enqueue(players, player);
         }
     }
-    g_info("Found %u players on the bus.", g_queue_get_length(players));
+    g_info("Found %u players on the bus.", players->length);
 
     g_object_unref(proxy);
     g_variant_unref(reply);
@@ -165,22 +167,18 @@ static Player *context_find_player(AwfulMCContext *ctx, const char *unique, cons
         .name = (char *)name,
         .instance = (char *)instance,
     };
-    GList *found = g_queue_find_custom(ctx->players, &find_name, player_compare);
+    Player *found = amcqueue_find_custom(ctx->players, (void *)&find_name, player_compare);
     if (found != NULL) {
-        return (Player *)found->data;
+        return found;
     }
 
-    found = g_queue_find_custom(ctx->pending_players, &find_name, player_compare);
-    if (found != NULL) {
-        return (Player *)found->data;
-    }
-
-    return NULL;
+    found = amcqueue_find_custom(ctx->pending_players, (void *)&find_name, player_compare);
+    return found;  // If the player is not found, this will return NULL
 }
 
 void print_players(AwfulMCContext *ctx) {
-    for (guint i = 0; i < g_queue_get_length(ctx->players); i++) {
-        Player *player = g_queue_peek_nth(ctx->players, i);
+    for (unsigned int i = 0; i < ctx->players->length; i++) {
+        Player *player = amcqueue_peek_nth(ctx->players, i);
         print_player(player);
         printf("\n");
     }
@@ -189,7 +187,7 @@ void print_players(AwfulMCContext *ctx) {
 
 void rotate_shown_player_prev(void *data) {
     AwfulMCContext *ctx = data;
-    guint player_count = g_queue_get_length(ctx->players);
+    uint player_count = ctx->players->length;
     if (player_count < 1)
         return;
 
@@ -198,7 +196,7 @@ void rotate_shown_player_prev(void *data) {
 
 void rotate_shown_player_next(void *data) {
     AwfulMCContext *ctx = data;
-    guint player_count = g_queue_get_length(ctx->players);
+    uint player_count = ctx->players->length;
     if (player_count < 1)
         return;
 
@@ -323,13 +321,13 @@ void name_owner_changed_signal_callback(GDBusConnection *con, const gchar *sende
 
         g_debug("getting properties for new player");
         player = player_new(new_owner, name+name_offset);
-        g_queue_remove(ctx->players, player);
-        g_queue_remove(ctx->pending_players, player);
-        g_queue_push_tail(ctx->pending_players, player);
+        amcqueue_remove(ctx->players, player);
+        amcqueue_remove(ctx->pending_players, player);
+        amc_enqueue(ctx->pending_players, player);
         ctx->pending_active = player;
         get_player_properties(ctx, player);
-        g_queue_remove(ctx->pending_players, player);
-        g_queue_push_tail(ctx->players, player);
+        amcqueue_remove(ctx->pending_players, player);
+        amc_enqueue(ctx->players, player);
         ctx->pending_active = NULL;
     } else {
         Player *player = context_find_player(ctx, NULL, NULL, name+name_offset);
@@ -341,8 +339,8 @@ void name_owner_changed_signal_callback(GDBusConnection *con, const gchar *sende
         }
 
         g_debug("removing name from players: unique=%s, name=%s", player->unique, player->name);
-        g_queue_remove(ctx->players, player);
-        g_queue_remove(ctx->pending_players, player);
+        amcqueue_remove(ctx->players, player);
+        amcqueue_remove(ctx->pending_players, player);
         if (ctx->pending_active == player) {
             ctx->pending_active = NULL;
         }
@@ -481,7 +479,7 @@ int main(void) {
     g_debug("connected to dbus: %s", g_dbus_connection_get_unique_name(ctx.con));
 
     ctx.players = get_players(&ctx, &err);
-    ctx.pending_players = g_queue_new();
+    ctx.pending_players = amcqueue_init();
     if (err != NULL) {
         g_printerr("Could not list currently active players: %s", err->message);
         g_object_unref(ctx.con);
@@ -529,7 +527,7 @@ int main(void) {
     close(fd);
     unlink(SOCKET_PATH);
 
-    g_queue_free_full(ctx.players, (GDestroyNotify)player_free);
+    amcqueue_free_full(ctx.players, player_free);
     media_box_context_free(ctx.mbc);
     g_object_unref(ctx.con);
     return 0;

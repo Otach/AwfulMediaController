@@ -3,6 +3,7 @@
 
 #include <X11/Xlib.h>
 #include <cairo/cairo.h>
+#include "amc_queue.h"
 #include "player.h"
 #include <pango/pangocairo.h>
 #include <X11/extensions/Xinerama.h>
@@ -50,6 +51,6 @@ typedef struct {
 
 MediaBoxContext *media_box_context_new();
 void media_box_context_free(MediaBoxContext *mbc);
-void draw_media_box(MediaBoxContext *mbc, GQueue *players);
+void draw_media_box(MediaBoxContext *mbc, AMCQueue *players);
 void remove_media_box(MediaBoxContext *mbc);
 #endif

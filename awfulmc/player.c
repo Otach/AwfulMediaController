@@ -61,7 +61,8 @@ void properties_free(PlayerProperties *props) {
     free(props);
 }
 
-void player_free(Player *player) {
+void player_free(void *_player) {
+    Player *player = _player;
     if (player == NULL) {
         return;
     }
@@ -232,7 +233,10 @@ void print_player(Player *player) {
 }
 
 
-gint player_compare(gconstpointer a, gconstpointer b) {
+int player_compare(const void* a, const void* b) {
+    /* 
+     * This function should return 0 on a full match, otherwise 1
+     */
     Player *fn_a = (Player *)a;
     Player *fn_b = (Player *)b;
     if (fn_a->unique != NULL && fn_b->unique != NULL && strcmp(fn_a->unique, fn_b->unique) != 0) {

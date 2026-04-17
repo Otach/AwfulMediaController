@@ -194,7 +194,7 @@ void draw_button(MediaBoxContext *mbc, Button *btn) {
     btn->displayed = true;
 }
 
-void draw_media_box(MediaBoxContext *mbc, GQueue *players) {
+void draw_media_box(MediaBoxContext *mbc, AMCQueue *players) {
     if (mbc->win == NO_WINDOW) {
         create_window(mbc);
     }
@@ -207,7 +207,7 @@ void draw_media_box(MediaBoxContext *mbc, GQueue *players) {
         mbc->buttons[i]->displayed = false;
     }
 
-    Player *player = g_queue_peek_nth(players, mbc->shown_player_index);
+    Player *player = amcqueue_peek_nth(players, mbc->shown_player_index);
     mbc->shown_player = player;
     if (player != NULL) {
         // Draw buttons
@@ -218,7 +218,7 @@ void draw_media_box(MediaBoxContext *mbc, GQueue *players) {
             g_free(player_name);
         }
 
-        if (g_queue_get_length(players) > 1) {
+        if (players->length > 1) {
             draw_button(mbc, mbc->buttons[BUTTON_PLAYER_PREV]);
             draw_button(mbc, mbc->buttons[BUTTON_PLAYER_NEXT]);
         }

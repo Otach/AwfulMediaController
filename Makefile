@@ -41,7 +41,7 @@ $(TESTDIR)/bin/test_amcqueue: awfulmc/amc_queue.c tests/test_amcqueue.c
 clean:
 	rm -rf $(BUILDDIR)
 	rm -f $(BINDIR)/awfulmc
-	rm -rf $(TESTDIR)
+	rm -rf $(TESTDIR)/bin
 
 install: $(TARGET)
 	@mkdir -p $(BINDIR)

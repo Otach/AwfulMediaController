@@ -124,6 +124,7 @@ void amcqueue_remove(AMCQueue *q, void *data) {
                 }
             } else {
                 pn->next = n->next;
+                q->length--;
             }
             free(n);
             break;
@@ -131,5 +132,4 @@ void amcqueue_remove(AMCQueue *q, void *data) {
         pn = n;
         n = n->next;
     }
-
 }

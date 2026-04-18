@@ -96,6 +96,35 @@ START_TEST(test_amcqueue_peek) {
 }
 END_TEST
 
+START_TEST(test_amcqueue_remove) {
+    const char *a = "Test String 0\0";
+    const char *b = "Test String 1\0";
+    const char *c = "Test String 2\0";
+    AMCQueue *q = amcqueue_init();
+    amc_enqueue(q, (void*)a);
+    amc_enqueue(q, (void*)b);
+    amc_enqueue(q, (void*)c);
+    AMCNode *nc = q->tail;
+    ck_assert_int_eq(q->length, 3);
+
+    amcqueue_remove(q, (void *)b);
+    ck_assert_ptr_eq(q->head->next, nc);
+    ck_assert_int_eq(q->length, 2);
+
+    // Remove head node
+    amcqueue_remove(q, (void *)a);
+    ck_assert_int_eq(q->length, 1);
+    ck_assert_ptr_eq(q->head, nc);
+    ck_assert_ptr_eq(q->head, q->tail);
+
+    // Remove last element in list
+    amcqueue_remove(q, (void *)c);
+    ck_assert_int_eq(q->length, 0);
+    ck_assert_ptr_null(q->head);
+    ck_assert_ptr_null(q->tail);
+}
+END_TEST
+
 Suite *amcqueue_suite(void) {
     Suite *s = suite_create("AMCQueue");
 
@@ -105,6 +134,7 @@ Suite *amcqueue_suite(void) {
     tcase_add_test(tc_core, test_amcqueue_enqueue);
     tcase_add_test(tc_core, test_amcqueue_dequeue);
     tcase_add_test(tc_core, test_amcqueue_peek);
+    tcase_add_test(tc_core, test_amcqueue_remove);
 
     suite_add_tcase(s, tc_core);
     return s;
